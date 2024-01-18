@@ -6,6 +6,15 @@ After code is executed, queue is cleared and loop ends.
 To do:
 * separate read and execute to two different buttons
 * make it work with more than one rfid
+
+1/18/2024 Update:
+I have made the read and execute steps separate.
+- Button 1 inputs commands into the queue once pressed if there is a tag on the rfid sensor.
+- Button 2 executes all the commands in the queue in order and then clear the queue completely.
+
+To do:
+* make it work with more than on rfid
+
  */
  
 #include <SPI.h>
@@ -15,7 +24,8 @@ To do:
 #define RST_PIN 7
 #define RLED_PIN 3
 #define GLED_PIN 2
-#define buttonPin 6
+#define buttonPin1 6
+#define buttonPin2 5
 MFRC522 mfrc522(SS_PIN, RST_PIN);   // Create MFRC522 instance.
 MFRC522::MIFARE_Key key;
 int commands[6] = {0, 0, 0, 0, 0, 0};
@@ -29,7 +39,8 @@ void setup()
   Serial.begin(9600);   // Initiate a serial communication
   pinMode(RLED_PIN, OUTPUT);
   pinMode(GLED_PIN, OUTPUT);
-  pinMode(buttonPin, INPUT);
+  pinMode(buttonPin1, INPUT);
+  pinMode(buttonPin2, INPUT);
 
   
   SPI.begin();      // Initiate  SPI bus
@@ -47,7 +58,7 @@ void loop()
   }
 
   // check if the pushbutton is pressed. If it is, the buttonState is HIGH:
-  if (digitalRead(buttonPin) == HIGH) {
+  if (digitalRead(buttonPin1) == HIGH) {
 
     while(ReadyToRead()){
       ReadDataFromBlock(blockNum, readBlockData);
@@ -80,8 +91,10 @@ void loop()
         Serial.println("Not recognized");
       }
     }
+    delay(3000);
+  }
 
-
+  if (digitalRead(buttonPin2) == HIGH) {
     Serial.println("Commands Queue: ");
     for(int i = 0; i < 6; i++){
       Serial.println(commands[i]);
