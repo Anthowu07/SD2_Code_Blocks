@@ -129,24 +129,109 @@ void readUltrasonic() {
   }
 }
 
-// Full speed forward movement
-void forwardMove() {
-  analogWrite(enA, 255); // Send PWM signal to L298N Enable pin
-  analogWrite(enB, 255); // Send PWM signal to L298N Enable pin
-  analogWrite(enC, 255); // Send PWM signal to L298N Enable pin
-  analogWrite(enD, 255); // Send PWM signal to L298N Enable pin
+// Forward movement for a set time. 
+void forwardMove(int speed) {
+  analogWrite(enA, speed); // Send PWM signal to L298N Enable pin
+  analogWrite(enB, speed); // Send PWM signal to L298N Enable pin
+  analogWrite(enC, speed); // Send PWM signal to L298N Enable pin
+  analogWrite(enD, speed); // Send PWM signal to L298N Enable pin
+
+  // Four second delay
+  delay(4000);
+
+  stopMove();
 }
 
+void resetDirection() {
+  // Set back to normal movement
+  digitalWrite(in1, LOW);
+  digitalWrite(in2, HIGH);
+  digitalWrite(in3, LOW);
+  digitalWrite(in4, HIGH);
+
+  digitalWrite(in5, HIGH);
+  digitalWrite(in6, LOW);
+  digitalWrite(in7, HIGH);
+  digitalWrite(in8, LOW); 
+}
+
+// Backward movement for a set time. 
 void backwardMove() {
 
+  // Inverse in pin values to change to backwards movement
+  digitalWrite(in1, HIGH);
+  digitalWrite(in2, LOW);
+  digitalWrite(in3, HIGH);
+  digitalWrite(in4, LOW);
+
+  digitalWrite(in5, LOW);
+  digitalWrite(in6, HIGH);
+  digitalWrite(in7, LOW);
+  digitalWrite(in8, HIGH); 
+  
+  analogWrite(enA, speed); // Send PWM signal to L298N Enable pin
+  analogWrite(enB, speed); // Send PWM signal to L298N Enable pin
+  analogWrite(enC, speed); // Send PWM signal to L298N Enable pin
+  analogWrite(enD, speed); // Send PWM signal to L298N Enable pin
+
+  // Four second delay
+  delay(4000);
+
+  stopMove();
+  resetDirection();
+  
 }
 
+/* Assuming
+ *  a|----|b
+ *   | ^^ |
+ *   |    |
+ *  c|----|d
+ *  in1,2=a
+ *  in3,4=b
+ *  in5,6=c
+ *  in7,8=d
+ */
 void rotateLeft() {
+  // a backwards
+  digitalWrite(in1, HIGH);
+  digitalWrite(in2, LOW);
 
+  // d forwards
+  digitalWrite(in7, HIGH);
+  digitalWrite(in8, LOW);
+
+   // Activate a and d at full speed
+   analogWrite(enA, 255); // Send PWM signal to L298N Enable 
+   analogWrite(enD, 255); // Send PWM signal to L298N Enable 
+
+   // Turn for half a second. Would need testing.
+   delay(500);
+
+   stopMove();
+   resetDirection();
 }
+
 
 void rotateRight() {
-
+  
+  // c forward
+  digitalWrite(in5, HIGH);
+  digitalWrite(in6, LOW);
+  
+  // b backwards
+  digitalWrite(in3, HIGH);
+  digitalWrite(in4, LOW);
+  
+  // Activate c and b at full speed
+  analogWrite(enB, 255); // Send PWM signal to L298N Enable
+  analogWrite(enC, 255); // Send PWM signal to L298N Enable 
+   
+  // Turn for half a second. Would need testing.
+  delay(500);
+  
+  stopMove();
+  resetDirection();
 }
 
 void stopMove() {
@@ -154,8 +239,7 @@ void stopMove() {
   analogWrite(enB, 0); // Send turn off signal
   analogWrite(enC, 0); // Send turn off signal
   analogWrite(enD, 0); // Send turn off signal
-}
-
+} 
 
 int pressed = 0;
 void loop() {
