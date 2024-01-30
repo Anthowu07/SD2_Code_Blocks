@@ -156,7 +156,7 @@ void resetDirection() {
 }
 
 // Backward movement for a set time. 
-void backwardMove() {
+void backwardMove(int speed) {
 
   // Inverse in pin values to change to backwards movement
   digitalWrite(in1, HIGH);
@@ -186,7 +186,7 @@ void backwardMove() {
  *  a|----|b
  *   | ^^ |
  *   |    |
- *  c|----|d
+ *  d|----|c
  *  in1,2=a
  *  in3,4=b
  *  in5,6=c
@@ -196,42 +196,137 @@ void rotateLeft() {
   // a backwards
   digitalWrite(in1, HIGH);
   digitalWrite(in2, LOW);
+  // d backwards
+  digitalWrite(in7, LOW);
+  digitalWrite(in8, HIGH);
 
-  // d forwards
-  digitalWrite(in7, HIGH);
-  digitalWrite(in8, LOW);
+  // c forwards
+  digitalWrite(in5, HIGH);
+  digitalWrite(in6, LOW);
+  // b forwards
+  digitalWrite(in3, LOW);
+  digitalWrite(in4, HIGH);
 
-   // Activate a and d at full speed
-   analogWrite(enA, 255); // Send PWM signal to L298N Enable 
-   analogWrite(enD, 255); // Send PWM signal to L298N Enable 
+  // Activate a and c at full speed
+  analogWrite(enA, 255); // Send PWM signal to L298N Enable 
+  analogWrite(enB, 255); // Send PWM signal to L298N Enable 
+  analogWrite(enC, 255); // Send PWM signal to L298N Enable 
+  analogWrite(enD, 255); // Send PWM signal to L298N Enable 
 
-   // Turn for half a second. Would need testing.
-   delay(500);
+  // 1000 = 1 second.
+  delay(3000);
 
-   stopMove();
-   resetDirection();
+  stopMove();
+  resetDirection();
 }
 
 
 void rotateRight() {
   
-  // c forward
-  digitalWrite(in5, HIGH);
-  digitalWrite(in6, LOW);
+  // d forward
+  digitalWrite(in7, HIGH);
+  digitalWrite(in8, LOW);
+  // a forward
+  digitalWrite(in1, LOW);
+  digitalWrite(in2, HIGH);
   
   // b backwards
   digitalWrite(in3, HIGH);
   digitalWrite(in4, LOW);
+  // c backwards
+  digitalWrite(in5, LOW);
+  digitalWrite(in6, HIGH);
   
-  // Activate c and b at full speed
+  analogWrite(enA, 255); // Send PWM signal to L298N Enable 
   analogWrite(enB, 255); // Send PWM signal to L298N Enable
   analogWrite(enC, 255); // Send PWM signal to L298N Enable 
+  analogWrite(enD, 255); // Send PWM signal to L298N Enable 
    
-  // Turn for half a second. Would need testing.
-  delay(500);
+  // 1000 = 1 second.
+  delay(3000);
   
   stopMove();
   resetDirection();
+}
+
+/* F = forward, R = reversed
+ * F a|----|b R
+ *    | ^^ |
+ *    |    |
+ * R d|----|c F
+ *  in1,2=a
+ *  in3,4=b
+ *  in5,6=c
+ *  in7,8=d
+ */
+void sidewayRight() {
+
+  // a forward
+  digitalWrite(in1, LOW);
+  digitalWrite(in2, HIGH);
+  // b backwards
+  digitalWrite(in3, HIGH);
+  digitalWrite(in4, LOW);
+  // d backwards
+  digitalWrite(in7, LOW);
+  digitalWrite(in8, HIGH);
+  // c forwards
+  digitalWrite(in5, HIGH);
+  digitalWrite(in6, LOW);
+
+  analogWrite(enA, 255); // Send PWM signal to L298N Enable 
+  analogWrite(enB, 255); // Send PWM signal to L298N Enable
+  analogWrite(enC, 255); // Send PWM signal to L298N Enable 
+  analogWrite(enD, 255); // Send PWM signal to L298N Enable 
+
+  delay(4000);
+
+  stopMove();
+  resetDirection();
+}
+
+/* F = forward, R = reversed
+ * R a|----|b F
+ *    | ^^ |
+ *    |    |
+ * F d|----|c R
+ *  in1,2=a
+ *  in3,4=b
+ *  in5,6=c
+ *  in7,8=d
+ */
+void sidewayLeft() {
+
+  // a backwards
+  digitalWrite(in1, HIGH);
+  digitalWrite(in2, LOW);
+  // b forwards
+  digitalWrite(in3, LOW);
+  digitalWrite(in4, HIGH);
+  // d forwards
+  digitalWrite(in7, HIGH);
+  digitalWrite(in8, LOW);
+  // c backwards
+  digitalWrite(in5, LOW);
+  digitalWrite(in6, HIGH);
+
+  analogWrite(enA, 255); // Send PWM signal to L298N Enable 
+  analogWrite(enB, 255); // Send PWM signal to L298N Enable
+  analogWrite(enC, 255); // Send PWM signal to L298N Enable 
+  analogWrite(enD, 255); // Send PWM signal to L298N Enable 
+
+  delay(4000);
+
+  stopMove();
+  resetDirection();
+}
+
+void diagonalForwardRight() {
+
+}
+
+void diagonalForwardLeft() {
+
 }
 
 void stopMove() {
@@ -242,6 +337,8 @@ void stopMove() {
 } 
 
 int pressed = 0;
+int toggle = 0;
+int speed = 255;
 void loop() {
 
     // Read button - Debounce
@@ -252,14 +349,20 @@ void loop() {
   delay(20);
 
   if (pressed == true) {
-    forwardMove();
+    forwardMove(speed);
+    sidewayRight();
+    sidewayLeft();
+    rotateLeft();
+    rotateRight();
+    backwardMove(speed);
+    pressed = 0;
   }
-  else if (pressed == false) {
+  /*else if (pressed == false) {
     stopMove();
-  }
+  }*/
 
 
-/*
+
     // Read button - Debounce
   if (digitalRead(button2) == true) {
     toggle = !toggle;
@@ -268,8 +371,12 @@ void loop() {
   delay(20);
 
   if (toggle == true) {
-    stopMove();
-  }*/
+    rotateRight();
+    rotateRight();
+    rotateRight();
+    rotateRight();
+    toggle = 0;
+  }
   /*
   // If button is pressed - change rotation direction
   if (pressed == true  & rotDirection == 0) {
