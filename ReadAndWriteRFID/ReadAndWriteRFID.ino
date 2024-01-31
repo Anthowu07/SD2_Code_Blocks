@@ -4,8 +4,8 @@
 /*Using Hardware SPI of Arduino */
 /*MOSI (11), MISO (12) and SCK (13) are fixed */
 /*You can configure SS and RST Pins*/
-#define SS_PIN 8  /* Slave Select Pin */
-#define RST_PIN 5  /* Reset Pin */
+#define SS_PIN 23  /* Slave Select Pin */
+#define RST_PIN 12  /* Reset Pin */
 
 /* Create an instance of MFRC522 */
 MFRC522 mfrc522(SS_PIN, RST_PIN);
@@ -17,7 +17,7 @@ MFRC522::MIFARE_Key key;
 int blockNum = 2;  
 /* Create an array of 16 Bytes and fill it with data */
 /* This is the actual data which is going to be written into the card */
-byte blockData [16] = {"Backward"};
+byte blockData [16] = {"Forward"};
 
 /* Create another array to read data from Block */
 /* Legthn of buffer should be 2 Bytes more than the size of Block (16 Bytes) */

@@ -8,6 +8,23 @@
 
 */
 
+/*
+  Anthony Wu 1/31/2024
+  Current Functionality:
+    1) User presses button 1
+    2) If there is a tag on all rfids, a command queue is filled with the codes in each tag in order
+    3) user Presses button 2
+    4) Commands in the command queue are executed in order
+    5) Command queue is completely cleared
+
+  Notes:
+    - All sensors must have a tag for anything to be read
+    - Sometimes, you must hold down button 1 to read properly
+    - Numeber of RFID readers is configurable
+    - The queue cannot hold more than 6 commands currently
+    - Works for only forward and backwards currently
+*/
+
 // Motor driver 1
 #define enA 3 // Motor 1 PWM
 #define in1 24 // Motor 1
@@ -32,13 +49,15 @@
 #define RST_PIN   12 
 #define SS_PIN    13 // RFID 1
 #define SS_PIN2   23 // RFID 2
+#define NR_OF_READERS   2
+byte ssPins[] = {SS_PIN, SS_PIN2};
 
 long duration;
 int distance;
 int status = 0; // Controls the status of the motors
 
 // Create instance
-MFRC522 mfrc522(SS_PIN, RST_PIN);
+MFRC522 mfrc522[NR_OF_READERS];   // Create MFRC522 instance.
 MFRC522::MIFARE_Key key;
 
 int commands[6] = {0, 0, 0, 0, 0, 0};
@@ -52,7 +71,15 @@ void setup() {
 
   // Initiating
   SPI.begin();        // SPI bus
-  mfrc522.PCD_Init(); //  MFRC522
+  //mfrc522.PCD_Init(); //  MFRC522
+  //mfrc522b.PCD_Init(); //  MFRC522
+  for (uint8_t reader = 0; reader < NR_OF_READERS; reader++) {
+    mfrc522[reader].PCD_Init(ssPins[reader], RST_PIN); // Init each MFRC522 card
+    Serial.print(F("Reader "));
+    Serial.print(reader);
+    Serial.print(F(": "));
+    mfrc522[reader].PCD_DumpVersionToSerial();
+  }
 
   pinMode(trigPin, OUTPUT); // Sets the trigPin as an Output
   pinMode(echoPin, INPUT); // Sets the echoPin as an Input
@@ -90,7 +117,7 @@ void setup() {
   digitalWrite(in7, HIGH);
   digitalWrite(in8, LOW);
 
-  Serial.println("Approximate your card to the reader...");
+  Serial.println("Press Button one to begin read...");
   Serial.println();      
   
 }
@@ -104,44 +131,18 @@ void loop() {
     key.keyByte[i] = 0xFF;
   }
 
-  // check if the pushbutton is pressed. If it is, the buttonState is HIGH:
+  // Check if the pushbutton is pressed. If it is, the buttonState is HIGH:
+  // Begin Read
   if (digitalRead(button) == HIGH) {
     Serial.println("Button Pressed");
-    while(ReadyToRead()){
+    while(ReadyToRead()){                         //Checks if a tag is on all RFIDs
       Serial.println("Scanning...");
-      ReadDataFromBlock(blockNum, readBlockData);
-      Serial.println(readBlockData[0]);
-
-      if (readBlockData[0] == 49)
-      {
-        Serial.println("Move Forward");
-        Serial.println();
-        for(int i = 0; i < 6; i++){
-          if(commands[i] == 0){
-            commands[i] = 1;
-            break;
-          }
-        }
-        delay(3000);
-      }
-    
-      else if (readBlockData[0] == 50)   {
-        Serial.println("Move Backward");
-        Serial.println();
-        for(int i = 0; i < 6; i++){
-          if(commands[i] == 0){
-            commands[i] = 2;
-            break;
-          }
-        }
-        delay(3000);
-      }else{
-        Serial.println("Not recognized");
-      }
+      ReadDataFromBlock(blockNum, readBlockData); //Also calls FillsQueue()
     }
-    delay(3000);
+    delay(1000);
   }
 
+  // Execute commands in order
   if (digitalRead(button2) == HIGH) {
     Serial.println("Commands Queue: ");
     for(int i = 0; i < 6; i++){
@@ -157,59 +158,100 @@ void loop() {
   }
 }
 
+//Reads data in each tag and fills command queue with the data found in the tags
 void ReadDataFromBlock(int blockNum, byte readBlockData[]) 
 {
-  /* Authenticating the desired data block for Read access using Key A */
-  byte status = mfrc522.PCD_Authenticate(MFRC522::PICC_CMD_MF_AUTH_KEY_A, blockNum, &key, &(mfrc522.uid));
+  for (uint8_t reader = 0; reader < NR_OF_READERS; reader++) {
+    /* Authenticating the desired data block for Read access using Key A */
+    byte status = mfrc522[reader].PCD_Authenticate(MFRC522::PICC_CMD_MF_AUTH_KEY_A, blockNum, &key, &(mfrc522[reader].uid));
 
-  if (status != MFRC522::STATUS_OK)
-  {
-     Serial.print("Authentication failed for Read: ");
-     Serial.println(mfrc522.GetStatusCodeName(status));
-     return;
-  }
-  else
-  {
-    Serial.println("Authentication success");
-  }
+    if (status != MFRC522::STATUS_OK)
+    {
+      Serial.print("Authentication failed for Read: ");
+      Serial.println(mfrc522[reader].GetStatusCodeName(status));
+      return;
+    }
+    else
+    {
+      Serial.println("Authentication success");
+    }
 
-  /* Reading data from the Block */
-  status = mfrc522.MIFARE_Read(blockNum, readBlockData, &bufferLen);
-  if (status != MFRC522::STATUS_OK)
-  {
-    Serial.print("Reading failed: ");
-    Serial.println(mfrc522.GetStatusCodeName(status));
-    return;
-  }
-  else
-  {
-    Serial.println("Block was read successfully");
+    /* Reading data from the Block */
+    status = mfrc522[reader].MIFARE_Read(blockNum, readBlockData, &bufferLen);
+    if (status != MFRC522::STATUS_OK)
+    {
+      Serial.print("Reading failed: ");
+      Serial.println(mfrc522[reader].GetStatusCodeName(status));
+      return;
+    }
+    else
+    {
+      Serial.println("Block was read successfully");
 
-    delay(1000); //change value if you want to read cards faster
+      delay(1000); //change value if you want to read cards faster
 
-    mfrc522.PICC_HaltA();
-    mfrc522.PCD_StopCrypto1();
+      mfrc522[reader].PICC_HaltA();
+      mfrc522[reader].PCD_StopCrypto1();
+
+      Serial.println(readBlockData[0]);
+
+      FillQueue(readBlockData[0]);
+
+    }
   }
 }
 
+//Checks if there is a tag on all RFIDs, otherwise ends operation
 boolean ReadyToRead() 
 {
-  // Getting ready for Reading PICCs
-  if ( ! mfrc522.PICC_IsNewCardPresent()) { //If a new PICC placed to RFID reader continue
-  Serial.println("Failed to read");
-  return false;
+  for (uint8_t reader = 0; reader < NR_OF_READERS; reader++) {
+    // Getting ready for Reading PICCs
+    if ( ! mfrc522[reader].PICC_IsNewCardPresent()) { //If a new PICC placed to RFID reader continue
+    //Serial.println("Failed to read");
+    return false;
+    }
+    if ( ! mfrc522[reader].PICC_ReadCardSerial()) { //Since a PICC placed get Serial and continue
+    //Serial.println("Failed to read2");
+    return false;
+    }
+    String tagID = "";
+    for ( uint8_t i = 0; i < 4; i++) { // The MIFARE PICCs that we use have 4 byte UID
+    //readCard[i] = mfrc522.uid.uidByte[i];
+    tagID.concat(String(mfrc522[reader].uid.uidByte[i], HEX)); // Adds the 4 bytes in a single String variable
+    }
+    tagID.toUpperCase();
   }
-  if ( ! mfrc522.PICC_ReadCardSerial()) { //Since a PICC placed get Serial and continue
-  Serial.println("Failed to read2");
-  return false;
-  }
-  String tagID = "";
-  for ( uint8_t i = 0; i < 4; i++) { // The MIFARE PICCs that we use have 4 byte UID
-  //readCard[i] = mfrc522.uid.uidByte[i];
-  tagID.concat(String(mfrc522.uid.uidByte[i], HEX)); // Adds the 4 bytes in a single String variable
-  }
-  tagID.toUpperCase();
   return true;
+}
+
+//Fills command Queue with data read from ReadDataFromBlock()
+void FillQueue(byte readBlockData){
+  if (readBlockData == 49)
+  {
+    Serial.println("Move Forward");
+    Serial.println();
+    for(int i = 0; i < 6; i++){
+      if(commands[i] == 0){
+        commands[i] = 1;
+        break;
+      }
+    }
+    delay(300);
+  }
+    
+  else if (readBlockData == 50)   {
+    Serial.println("Move Backward");
+    Serial.println();
+    for(int i = 0; i < 6; i++){
+      if(commands[i] == 0){
+        commands[i] = 2;
+        break;
+      }
+    }
+    delay(300);
+  }else{
+    Serial.println("Not recognized");
+  }
 }
  
 void readUltrasonic() {

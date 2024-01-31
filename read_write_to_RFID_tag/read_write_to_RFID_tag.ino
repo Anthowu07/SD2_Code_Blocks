@@ -4,8 +4,9 @@
 /*Using Hardware SPI of Arduino */
 /*MOSI (11), MISO (12) and SCK (13) are fixed */
 /*You can configure SS and RST Pins*/
-#define SS_PIN 10  /* Slave Select Pin */
-#define RST_PIN 7  /* Reset Pin */
+#define SS_PIN 13  /* Slave Select Pin */
+#define RST_PIN 12  /* Reset Pin */
+#define buttonPin1 4
 
 /* Create an instance of MFRC522 */
 MFRC522 mfrc522(SS_PIN, RST_PIN);
@@ -45,32 +46,35 @@ void loop()
   {
     key.keyByte[i] = 0xFF;
   }
-  while(ReadyToRead()){
-      /* Call 'WriteDataToBlock' function, which will write data to the block */
-    Serial.print("\n");
-    Serial.println("Writing to Data Block...");
-    WriteDataToBlock(blockNum, blockData);
-    
-    /* Read data from the same block */
-    Serial.print("\n");
-    Serial.println("Reading from Data Block...");
-    ReadDataFromBlock(blockNum, readBlockData);
-    /* If you want to print the full memory dump, uncomment the next line */
-    //mfrc522.PICC_DumpToSerial(&(mfrc522.uid));
-    
-    /* Print the data read from block */
-    Serial.print("\n");
-    Serial.print("Data in Block:");
-    Serial.print(blockNum);
-    Serial.print(" --> ");
-    for (int j=0 ; j<16 ; j++)
-    {
-      Serial.write(readBlockData[j]);
+  if (digitalRead(buttonPin1) == HIGH) {
+    Serial.println("Button 1 Pressed");
+    while(ReadyToRead()){
+        /* Call 'WriteDataToBlock' function, which will write data to the block */
+      Serial.print("\n");
+      Serial.println("Writing to Data Block...");
+      WriteDataToBlock(blockNum, blockData);
+      
+      /* Read data from the same block */
+      Serial.print("\n");
+      Serial.println("Reading from Data Block...");
+      ReadDataFromBlock(blockNum, readBlockData);
+      /* If you want to print the full memory dump, uncomment the next line */
+      //mfrc522.PICC_DumpToSerial(&(mfrc522.uid));
+      
+      /* Print the data read from block */
+      Serial.print("\n");
+      Serial.print("Data in Block:");
+      Serial.print(blockNum);
+      Serial.print(" --> ");
+      for (int j=0 ; j<16 ; j++)
+      {
+        Serial.write(readBlockData[j]);
+      }
+      //Serial.print(readBlockData);
+      Serial.print("\n");
     }
-    //Serial.print(readBlockData);
-    Serial.print("\n");
-  }
-         
+    delay(300);
+  }   
    
 }
 
@@ -143,7 +147,7 @@ boolean ReadyToRead(){
   /* Reset the loop if no new card is present on RC522 Reader */
   if ( ! mfrc522.PICC_IsNewCardPresent())
   {
-    //Serial.println("returning false 1");
+    Serial.println("returning false 1");
     return false;
   }
   
