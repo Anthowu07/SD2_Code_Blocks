@@ -20,12 +20,12 @@ To do:
 #include <SPI.h>
 #include <MFRC522.h>
  
-#define SS_PIN 10
-#define RST_PIN 7
+#define SS_PIN 13
+#define RST_PIN 12
 #define RLED_PIN 3
 #define GLED_PIN 2
-#define buttonPin1 6
-#define buttonPin2 5
+#define buttonPin1 4
+#define buttonPin2 8
 MFRC522 mfrc522(SS_PIN, RST_PIN);   // Create MFRC522 instance.
 MFRC522::MIFARE_Key key;
 int commands[6] = {0, 0, 0, 0, 0, 0};
@@ -59,8 +59,9 @@ void loop()
 
   // check if the pushbutton is pressed. If it is, the buttonState is HIGH:
   if (digitalRead(buttonPin1) == HIGH) {
-
+    Serial.println("Button 1 Pressed");
     while(ReadyToRead()){
+      Serial.println("Writing into queue...");
       ReadDataFromBlock(blockNum, readBlockData);
       Serial.println(readBlockData[0]);
 
@@ -99,13 +100,13 @@ void loop()
     for(int i = 0; i < 6; i++){
       Serial.println(commands[i]);
       if(commands[i] == 1){
-        digitalWrite(GLED_PIN, HIGH);
-        delay(2000);
-        digitalWrite(GLED_PIN, LOW);
+        // digitalWrite(GLED_PIN, HIGH);
+        // delay(2000);
+        // digitalWrite(GLED_PIN, LOW);
       }else if (commands[i] == 2){
-        digitalWrite(RLED_PIN, HIGH);
-        delay(2000);
-        digitalWrite(RLED_PIN, LOW);
+        // digitalWrite(RLED_PIN, HIGH);
+        // delay(2000);
+        // digitalWrite(RLED_PIN, LOW);
       }
       commands[i] = 0;
     }
@@ -154,6 +155,7 @@ boolean ReadyToRead()
 {
   // Getting ready for Reading PICCs
   if ( ! mfrc522.PICC_IsNewCardPresent()) { //If a new PICC placed to RFID reader continue
+  Serial.println("Failed");
   return false;
   }
   if ( ! mfrc522.PICC_ReadCardSerial()) { //Since a PICC placed get Serial and continue
