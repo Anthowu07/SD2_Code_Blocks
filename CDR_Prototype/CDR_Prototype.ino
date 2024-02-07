@@ -135,7 +135,7 @@ void loop() {
   // Begin Read
   if (digitalRead(button) == HIGH) {
     Serial.println("Button Pressed");
-    while(ReadyToRead()){                         //Checks if a tag is on all RFIDs
+    if(ReadyToRead()){                         //Checks if a tag is on all RFIDs
       Serial.println("Scanning...");
       ReadDataFromBlock(blockNum, readBlockData); //Also calls FillsQueue()
     }
@@ -207,7 +207,8 @@ boolean ReadyToRead()
   for (uint8_t reader = 0; reader < NR_OF_READERS; reader++) {
     // Getting ready for Reading PICCs
     if ( ! mfrc522[reader].PICC_IsNewCardPresent()) { //If a new PICC placed to RFID reader continue
-    //Serial.println("Failed to read");
+    Serial.print("Failed to read ");
+    Serial.println(reader);
     return false;
     }
     if ( ! mfrc522[reader].PICC_ReadCardSerial()) { //Since a PICC placed get Serial and continue
