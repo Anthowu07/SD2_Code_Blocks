@@ -49,7 +49,9 @@
 #define RST_PIN   12 
 #define SS_PIN    13 // RFID 1
 #define SS_PIN2   23 // RFID 2
-#define NR_OF_READERS   2
+#define SS_PIN3   11 // RFID 3
+#define SS_PIN4   10 // RFID 4
+#define NR_OF_READERS   4
 byte ssPins[] = {SS_PIN, SS_PIN2};
 int readerStatus[NR_OF_READERS];
 
@@ -221,6 +223,7 @@ boolean ReadyToRead()
     Serial.println(reader);
     continue;
     }
+    Serial.print("This is runnign");
     if ( ! mfrc522[reader].PICC_ReadCardSerial()) { //Since a PICC placed get Serial and continue
     //Serial.println("Failed to read2");
     continue;
