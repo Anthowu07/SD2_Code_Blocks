@@ -1,6 +1,9 @@
 #include <MFRC522.h>
 #include <SPI.h>
 
+
+#define MFRC522_SPICLOCK SPI_CLOCK_DIV16
+
 /*  
   Three states determined from variable status.
 
@@ -55,7 +58,8 @@
 #define SS_PIN4   10 // RFID 4
 
 #define NR_OF_READERS   4
-byte ssPins[] = {SS_PIN, SS_PIN2, SS_PINS3, SS_PINS4};
+byte ssPins[] = {SS_PIN, SS_PIN2, SS_PIN3, SS_PIN4};
+int readerStatus[NR_OF_READERS];
 
 long duration;
 int distance;
@@ -84,6 +88,7 @@ void setup() {
     Serial.print(reader);
     Serial.print(F(": "));
     mfrc522[reader].PCD_DumpVersionToSerial();
+    readerStatus[reader] = 0;
   }
 
   pinMode(trigPin, OUTPUT); // Sets the trigPin as an Output
@@ -160,14 +165,6 @@ void loop() {
   }
 }
 
-//Reads data in each tag and fills command queue with the data found in the tags
-void ReadDataFromBlock(int blockNum, byte readBlockData[]) 
-{
-  for (uint8_t reader = 0; reader < NR_OF_READERS; reader++) {
-    
-  }
-}
-
 //Checks if there is a tag on all RFIDs, otherwise ends operation ON CURRENT RFID READER
 //then moves on to the next one. 
 //Reads data in each tag and fills command queue with the data found in the tags
@@ -178,21 +175,29 @@ void ReadyToRead()
 
     int readStatus = 0;
 
-    for (int i = 0; i < 50; i++) {
-      if (mfrc522[reader].PICC_IsNewCardPresent()) { //If a new PICC placed to RFID reader continue
+    for (int i = 0; i < 20; i++) {
+      if (mfrc522[reader].PICC_IsNewCardPresent() && mfrc522[reader].PICC_ReadCardSerial()) { //If a new PICC placed to RFID reader continue
+        Serial.print("Success read on card ");
+        Serial.println(reader);
         readStatus = 1;
         break;
       }
     }
-    if (readStatus == 0) continue;
-
-    for (i = 0; i < 50; i++) {
+    if (readStatus == 0) {
+      Serial.print("Fail read on card ");
+      Serial.println(reader);
+      mfrc522[reader].PICC_HaltA();
+      mfrc522[reader].PCD_StopCrypto1();
+      continue;
+    }
+    /*
+    for (int i = 0; i < 20; i++) {
       if (mfrc522[reader].PICC_ReadCardSerial()) { //Since a PICC placed get Serial and continue
         readStatus = 1;
         break;
       }
     }
-    if (readStatus == 0) continue;
+    if (readStatus == 0) continue;*/
 
     String tagID = "";
     for ( uint8_t i = 0; i < 4; i++) { // The MIFARE PICCs that we use have 4 byte UID
@@ -200,7 +205,10 @@ void ReadyToRead()
     tagID.concat(String(mfrc522[reader].uid.uidByte[i], HEX)); // Adds the 4 bytes in a single String variable
     }
     tagID.toUpperCase();
-    mfrc522[reader].PICC_HaltA(); // Stop reading
+
+    readerStatus[reader] = 1;
+    Serial.print("Card found on reader ");
+    Serial.println(reader);
 
     /* Authenticating the desired data block for Read access using Key A */
     byte status = mfrc522[reader].PCD_Authenticate(MFRC522::PICC_CMD_MF_AUTH_KEY_A, blockNum, &key, &(mfrc522[reader].uid));
@@ -208,6 +216,7 @@ void ReadyToRead()
     if (status != MFRC522::STATUS_OK)
     {
       Serial.print("Authentication failed for Read: ");
+      Serial.print(reader);
       Serial.println(mfrc522[reader].GetStatusCodeName(status));
       continue;
     }
