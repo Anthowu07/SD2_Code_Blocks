@@ -4,11 +4,20 @@
 /*Using Hardware SPI of Arduino */
 /*MOSI (11), MISO (12) and SCK (13) are fixed */
 /*You can configure SS and RST Pins*/
-#define SS_PIN 23  /* Slave Select Pin */
+
+#define SS_PIN    13 // RFID 1
+#define SS_PIN2   23 // RFID 2
+#define SS_PIN3   35 // RFID 3
+#define SS_PIN4   37 // RFID 4
 #define RST_PIN 12  /* Reset Pin */
+#define CURRENT 1
+
+#define NR_OF_READERS   4
+byte ssPins[] = {SS_PIN, SS_PIN2, SS_PIN3, SS_PIN4};
+int readerStatus[NR_OF_READERS];
 
 /* Create an instance of MFRC522 */
-MFRC522 mfrc522(SS_PIN, RST_PIN);
+MFRC522 mfrc522[NR_OF_READERS];
 /* Create an instance of MIFARE_Key */
 MFRC522::MIFARE_Key key;          
 
@@ -33,7 +42,9 @@ void setup()
   /* Initialize SPI bus */
   SPI.begin();
   /* Initialize MFRC522 Module */
-  mfrc522.PCD_Init();
+  for (uint8_t reader = 0; reader < NR_OF_READERS; reader++) {
+    mfrc522[reader].PCD_Init(ssPins[reader], RST_PIN);
+  }
   Serial.println("Scan a MIFARE 1K Tag to write data...");
 }
 
@@ -47,13 +58,13 @@ void loop()
   }
   /* Look for new cards */
   /* Reset the loop if no new card is present on RC522 Reader */
-  if ( ! mfrc522.PICC_IsNewCardPresent())
+  if ( ! mfrc522[CURRENT].PICC_IsNewCardPresent())
   {
     return;
   }
   
   /* Select one of the cards */
-  if ( ! mfrc522.PICC_ReadCardSerial()) 
+  if ( ! mfrc522[CURRENT].PICC_ReadCardSerial()) 
   {
     return;
   }
@@ -61,16 +72,16 @@ void loop()
   Serial.println("**Card Detected**");
   /* Print UID of the Card */
   Serial.print(F("Card UID:"));
-  for (byte i = 0; i < mfrc522.uid.size; i++)
+  for (byte i = 0; i < mfrc522[CURRENT].uid.size; i++)
   {
-    Serial.print(mfrc522.uid.uidByte[i] < 0x10 ? " 0" : " ");
-    Serial.print(mfrc522.uid.uidByte[i], HEX);
+    Serial.print(mfrc522[CURRENT].uid.uidByte[i] < 0x10 ? " 0" : " ");
+    Serial.print(mfrc522[CURRENT].uid.uidByte[i], HEX);
   }
   Serial.print("\n");
   /* Print type of card (for example, MIFARE 1K) */
   Serial.print(F("PICC type: "));
-  MFRC522::PICC_Type piccType = mfrc522.PICC_GetType(mfrc522.uid.sak);
-  Serial.println(mfrc522.PICC_GetTypeName(piccType));
+  MFRC522::PICC_Type piccType = mfrc522[CURRENT].PICC_GetType(mfrc522[CURRENT].uid.sak);
+  Serial.println(mfrc522[CURRENT].PICC_GetTypeName(piccType));
          
    /* Call 'WriteDataToBlock' function, which will write data to the block */
    Serial.print("\n");
@@ -101,11 +112,11 @@ void loop()
 void WriteDataToBlock(int blockNum, byte blockData[]) 
 {
   /* Authenticating the desired data block for write access using Key A */
-  status = mfrc522.PCD_Authenticate(MFRC522::PICC_CMD_MF_AUTH_KEY_A, blockNum, &key, &(mfrc522.uid));
+  status = mfrc522[CURRENT].PCD_Authenticate(MFRC522::PICC_CMD_MF_AUTH_KEY_A, blockNum, &key, &(mfrc522[CURRENT].uid));
   if (status != MFRC522::STATUS_OK)
   {
     Serial.print("Authentication failed for Write: ");
-    Serial.println(mfrc522.GetStatusCodeName(status));
+    Serial.println(mfrc522[CURRENT].GetStatusCodeName(status));
     return;
   }
   else
@@ -115,11 +126,11 @@ void WriteDataToBlock(int blockNum, byte blockData[])
 
   
   /* Write data to the block */
-  status = mfrc522.MIFARE_Write(blockNum, blockData, 16);
+  status = mfrc522[CURRENT].MIFARE_Write(blockNum, blockData, 16);
   if (status != MFRC522::STATUS_OK)
   {
     Serial.print("Writing to Block failed: ");
-    Serial.println(mfrc522.GetStatusCodeName(status));
+    Serial.println(mfrc522[CURRENT].GetStatusCodeName(status));
     return;
   }
   else
@@ -132,12 +143,12 @@ void WriteDataToBlock(int blockNum, byte blockData[])
 void ReadDataFromBlock(int blockNum, byte readBlockData[]) 
 {
   /* Authenticating the desired data block for Read access using Key A */
-  byte status = mfrc522.PCD_Authenticate(MFRC522::PICC_CMD_MF_AUTH_KEY_A, blockNum, &key, &(mfrc522.uid));
+  byte status = mfrc522[CURRENT].PCD_Authenticate(MFRC522::PICC_CMD_MF_AUTH_KEY_A, blockNum, &key, &(mfrc522[CURRENT].uid));
 
   if (status != MFRC522::STATUS_OK)
   {
      Serial.print("Authentication failed for Read: ");
-     Serial.println(mfrc522.GetStatusCodeName(status));
+     Serial.println(mfrc522[CURRENT].GetStatusCodeName(status));
      return;
   }
   else
@@ -146,11 +157,11 @@ void ReadDataFromBlock(int blockNum, byte readBlockData[])
   }
 
   /* Reading data from the Block */
-  status = mfrc522.MIFARE_Read(blockNum, readBlockData, &bufferLen);
+  status = mfrc522[CURRENT].MIFARE_Read(blockNum, readBlockData, &bufferLen);
   if (status != MFRC522::STATUS_OK)
   {
     Serial.print("Reading failed: ");
-    Serial.println(mfrc522.GetStatusCodeName(status));
+    Serial.println(mfrc522[CURRENT].GetStatusCodeName(status));
     return;
   }
   else

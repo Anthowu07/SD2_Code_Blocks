@@ -54,8 +54,8 @@
 #define RST_PIN   12 
 #define SS_PIN    13 // RFID 1
 #define SS_PIN2   23 // RFID 2
-#define SS_PIN3   11 // RFID 3
-#define SS_PIN4   10 // RFID 4
+#define SS_PIN3   35 // RFID 3
+#define SS_PIN4   37 // RFID 4
 
 #define NR_OF_READERS   4
 byte ssPins[] = {SS_PIN, SS_PIN2, SS_PIN3, SS_PIN4};
@@ -84,6 +84,9 @@ void setup() {
   //mfrc522b.PCD_Init(); //  MFRC522
   for (uint8_t reader = 0; reader < NR_OF_READERS; reader++) {
     mfrc522[reader].PCD_Init(ssPins[reader], RST_PIN); // Init each MFRC522 card
+    // for(int i = 0; i < NR_OF_READERS; i++){
+    //   digitalWrite(ssPins[i], HIGH);
+    // }
     Serial.print(F("Reader "));
     Serial.print(reader);
     Serial.print(F(": "));
@@ -172,7 +175,8 @@ void ReadyToRead()
 {
   Serial.println("Scanning...");
   for (uint8_t reader = 0; reader < NR_OF_READERS; reader++) {
-
+    //digitalWrite(ssPins[reader], LOW);
+    //digitalWrite(23, LOW);
     int readStatus = 0;
 
     for (int i = 0; i < 20; i++) {
@@ -188,6 +192,8 @@ void ReadyToRead()
       Serial.println(reader);
       mfrc522[reader].PICC_HaltA();
       mfrc522[reader].PCD_StopCrypto1();
+      //digitalWrite(ssPins[reader], HIGH);
+      //digitalWrite(23, HIGH);
       continue;
     }
     /*
@@ -218,6 +224,8 @@ void ReadyToRead()
       Serial.print("Authentication failed for Read: ");
       Serial.print(reader);
       Serial.println(mfrc522[reader].GetStatusCodeName(status));
+      //digitalWrite(ssPins[reader], HIGH);
+      //digitalWrite(23, HIGH);
       continue;
     }
     else
@@ -231,13 +239,15 @@ void ReadyToRead()
     {
       Serial.print("Reading failed: ");
       Serial.println(mfrc522[reader].GetStatusCodeName(status));
+      //digitalWrite(ssPins[reader], HIGH);
+      //digitalWrite(23, HIGH);
       continue;
     }
     else
     {
       Serial.println("Block was read successfully");
 
-      delay(1000); //change value if you want to read cards faster
+      delay(4000); //change value if you want to read cards faster
 
       mfrc522[reader].PICC_HaltA();
       mfrc522[reader].PCD_StopCrypto1();
@@ -247,7 +257,8 @@ void ReadyToRead()
       FillQueue(readBlockData[0]);
 
     }
-
+    //digitalWrite(ssPins[reader], HIGH);
+    //digitalWrite(23, HIGH);
   }
 }
 
