@@ -8,11 +8,19 @@
 PN532_SPI pn532spiONE(SPI, 36);
 PN532_SPI pn532spiTWO(SPI, 37);
 PN532_SPI pn532spiTHREE(SPI, 38);
+PN532_SPI pn532spiFOUR(SPI, 43);
+PN532_SPI pn532spiFIVE(SPI, 41);
+PN532_SPI pn532spiSIX(SPI, 40);
+PN532_SPI pn532spiSEVEN(SPI, 35);
 
 NfcAdapter nfc = NfcAdapter(pn532spiONE);
 NfcAdapter nfc2 = NfcAdapter(pn532spiTWO);
 NfcAdapter nfc3 = NfcAdapter(pn532spiTHREE);
-#define READERS 3
+NfcAdapter nfc4 = NfcAdapter(pn532spiFOUR);
+NfcAdapter nfc5 = NfcAdapter(pn532spiFIVE);
+NfcAdapter nfc6 = NfcAdapter(pn532spiSIX);
+NfcAdapter nfc7 = NfcAdapter(pn532spiSEVEN);
+#define READERS 7
 
 #else
 
@@ -31,6 +39,10 @@ void setup(void) {
     nfc.begin();
     nfc2.begin();
     nfc3.begin();
+    nfc4.begin();
+    nfc5.begin();
+    nfc6.begin();
+    nfc7.begin();
 }
 
 void loop(void) {
@@ -51,6 +63,7 @@ void loop(void) {
     }
 
     delay(5000);
+
         Serial.println("\nScan a NFC tag three\n");
     if (nfc3.tagPresent())
     {
@@ -59,4 +72,41 @@ void loop(void) {
     }
     
     delay(5000);
+
+            Serial.println("\nScan a NFC tag four\n");
+    if (nfc4.tagPresent())
+    {
+        NfcTag tag = nfc4.read();
+        tag.print();
+    }
+    
+    delay(5000);
+    
+            Serial.println("\nScan a NFC tag five\n");
+    if (nfc5.tagPresent())
+    {
+        NfcTag tag = nfc5.read();
+        tag.print();
+    }
+    
+    delay(5000);
+    
+            Serial.println("\nScan a NFC tag six\n");
+    if (nfc6.tagPresent())
+    {
+        NfcTag tag = nfc6.read();
+        tag.print();
+    }
+    
+    delay(5000);
+    
+            Serial.println("\nScan a NFC tag seven\n");
+    if (nfc7.tagPresent())
+    {
+        NfcTag tag = nfc7.read();
+        tag.print();
+    }
+    
+    delay(5000);
+    
 }
