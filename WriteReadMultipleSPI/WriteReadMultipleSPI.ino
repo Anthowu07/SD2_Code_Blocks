@@ -1,3 +1,7 @@
+/*  3/18/2024
+This code reads from RFID tags when button 1 is pressed. The codes are saved into a queue. The respective LED will light up if something is read. It will stay off if nothing is there or the tag cannot be recognized.
+When button 2 is pressed, it reads the queue and executes the movement functions one by one and then clears the queue.*/
+
 #include <SPI.h>
 #include <PN532_SPI.h>
 #include <PN532.h>
@@ -19,33 +23,62 @@
 #define in7 31 // Motor 4 in3
 #define in8 33 // Motor 4 in4
 
-PN532_SPI pn532spiONE(SPI, 36);
-PN532_SPI pn532spiTWO(SPI, 37);
-PN532_SPI pn532spiTHREE(SPI, 38);
-PN532_SPI pn532spiFOUR(SPI, 43);
-PN532_SPI pn532spiFIVE(SPI, 41);
+#define enD 9 // Motor 4 PWM
+#define in7 31 // Motor 4 in3
+#define in8 33 // Motor 4 in4
+
+//74HC595 LED Controller Pins
+#define latchPin 5
+#define clockPin 6
+#define dataPin 4
+
+//Button Pins
+#define button1Pin 2
+#define button2Pin 3
+
+//PN532 RFID SPI Pins
+
+PN532_SPI pn532spiONE(SPI, 38);
+PN532_SPI pn532spiTWO(SPI, 43);
+PN532_SPI pn532spiTHREE(SPI, 37);
+PN532_SPI pn532spiFOUR(SPI, 36);
+PN532_SPI pn532spiFIVE(SPI, 35);
 PN532_SPI pn532spiSIX(SPI, 40);
-PN532_SPI pn532spiSEVEN(SPI, 35);
+PN532_SPI pn532spiSEVEN(SPI, 41);
 
 #define READERS 7
 NfcAdapter nfcDevices[READERS] = {NfcAdapter(pn532spiONE), NfcAdapter(pn532spiTWO), NfcAdapter(pn532spiTHREE), 
 NfcAdapter(pn532spiFOUR), NfcAdapter(pn532spiFIVE), NfcAdapter(pn532spiSIX), NfcAdapter(pn532spiSEVEN)};
 
-const int buttonPin = 2;
+int commands[7] = {0, 0, 0, 0, 0, 0, 0};
+byte leds = 0;
 
-int commands[6] = {0, 0, 0, 0, 0, 0};
+byte forwardArray[] = {0x0 ,'F', 'o', 'r', 'w', 'a', 'r', 'd'};
+byte backwardArray[] = {0x0 ,'B', 'a', 'c', 'k', 'w', 'r', 'd'};
+byte rotateLeftArray[] = {0x0 ,'R', 'o', 't', 'a', 't', 'e', 'L'};
+byte rotateRightArray[] = {0x0 ,'R', 'o', 't', 'a', 't', 'e', 'R'};
+byte sidewaysRightArray[] = {0x0 ,'S', 'i', 'd', 'e', 'w', 'y', 'R'};
+byte sidewaysLeftArray[] = {0x0 ,'S', 'i', 'd', 'e', 'w', 'y', 'L'};
+byte forwardRightArray[] = {0x0 ,'F', 'w', 'd', 'r', 'g', 'h', 't'};
+byte backwardRightArray[] = {0x0 ,'B', 'w', 'd', 'r', 'g', 'h', 't'};
+byte backwardLeftArray[] = {0x0 ,'B', 'w', 'd', 'l', 'e', 'f', 't'};
+byte forwardLeftArray[] = {0x0 ,'F', 'w', 'd', 'l', 'e', 'f', 't'};
+byte stopMoveArray[] = {0x0 ,'S', 't', 'o', 'p', 'm', 'o', 'v'};
 
 void setup(void) {
   
   Serial.begin(9600);
 
-  pinMode(buttonPin, INPUT);
-  motorSetup();
-
   for (int i = 0; i < READERS; i++) {
     nfcDevices[i].begin();
   }
 
+  motorSetup();
+  pinMode(button1Pin, INPUT);
+  pinMode(button2Pin, INPUT);
+  pinMode(latchPin, OUTPUT);
+  pinMode(dataPin, OUTPUT);  
+  pinMode(clockPin, OUTPUT);
 }
 
 void motorSetup() {
@@ -79,44 +112,92 @@ void motorSetup() {
 }
 
 void loop(void) {
-  // Configured to only use 1
-  if (digitalRead(buttonPin) == HIGH) {
+  leds = 0;
+  updateShiftRegister();
+  bool recognized = true;
+
+  //When the read button is pushed
+  if (digitalRead(button1Pin) == HIGH) {
+    int index = 0;
     for (int i = 0; i < READERS; i++) {
 
-      Serial.print("\nScan a NFC tag for reader ");
-      Serial.print(i);
+      Serial.print("\n Scanning RFID ");
+      Serial.print(i+1);
       Serial.print("\n");
-
       if (nfcDevices[i].tagPresent())
       {
-        NdefMessage message = NdefMessage();
-        message.addUriRecord("Forward");
+        
+        //Write instruction into tag
+        // NdefMessage message = NdefMessage();
+        // message.addUriRecord("RotateR");
 
-        bool success = nfcDevices[i].write(message);
-        if (success) {
-          Serial.println("Write success.");        
-        } else {
-          Serial.println("Write failed.");
-        }
+        // bool success = nfcDevices[i].write(message);
+        // if (success) {
+        //   Serial.println("Write success.");        
+        // } else {
+        //   Serial.println("Write failed.");
+        // }
+        // delay(300);
 
-      delay(300);
+        //Read tag, obtain Payload, print payload
         byte payload[8];
         NfcTag tag = nfcDevices[i].read();
         tag.getNdefMessage().getRecord(0).getPayload(payload);
-
-        //tag.print();
-        //Serial.println(payload, HEX);
         PrintHexChar(payload, sizeof(payload));
-        byte forwardArray[] = {0x0 ,'F', 'o', 'r', 'w', 'a', 'r', 'd'};
-        if(memcmp(payload, forwardArray, sizeof(payload)) == 0){
-          Serial.println("Verified");
-        }else{
-          Serial.println("Naur");
-        }
-      }
 
+        if(memcmp(payload, forwardArray, sizeof(payload)) == 0){
+          Serial.println("Forward");
+          commands[index] = 1;
+        }else if(memcmp(payload, backwardArray, sizeof(payload)) == 0){
+          Serial.println("Backward");
+          commands[index] = 2;
+        }else if(memcmp(payload, rotateLeftArray, sizeof(payload)) == 0){
+          Serial.println("Rotate Left");
+          commands[index] = 3;
+        }else if(memcmp(payload, rotateRightArray, sizeof(payload)) == 0){
+          Serial.println("Rotate Right");
+          commands[index] = 4;
+        }else if(memcmp(payload, sidewaysRightArray, sizeof(payload)) == 0){
+          Serial.println("Sideways Right");
+          commands[index] = 5;
+        }else if(memcmp(payload, sidewaysLeftArray, sizeof(payload)) == 0){
+          Serial.println("Sideways Left");
+          commands[index] = 6;
+        }else if(memcmp(payload, forwardRightArray, sizeof(payload)) == 0){
+          Serial.println("Forward Right");
+          commands[index] = 7;
+        }else if(memcmp(payload, backwardRightArray, sizeof(payload)) == 0){
+          Serial.println("Backward Right");
+          commands[index] = 8;
+        }else if(memcmp(payload, backwardLeftArray, sizeof(payload)) == 0){
+          Serial.println("Backward Left");
+          commands[index] = 9;
+        }else if(memcmp(payload, forwardLeftArray, sizeof(payload)) == 0){
+          Serial.println("Forward Left");
+          commands[index] = 10;
+        }else if(memcmp(payload, stopMoveArray, sizeof(payload)) == 0){
+          Serial.println("Stop Moving");
+          commands[index] = 11;
+        }else{
+          Serial.println("Not recognized");
+          recognized = false;
+        }
+
+        //If read is succesful, turn on LED
+        if(recognized){
+          bitSet(leds, i);
+          updateShiftRegister();
+          index++;
+        }
+        
+      }
       delay(1000);
     }
+  }
+
+  //When execute button is pressed
+  if (digitalRead(button2Pin) == HIGH) {
+    executeCommands();
   }
 }
 
@@ -427,4 +508,94 @@ void stopMove() {
   analogWrite(enB, 0); // Send turn off signal
   analogWrite(enC, 0); // Send turn off signal
   analogWrite(enD, 0); // Send turn off signal
-} 
+}
+
+void updateShiftRegister()
+{
+   digitalWrite(latchPin, LOW);
+   shiftOut(dataPin, clockPin, LSBFIRST, leds);
+   digitalWrite(latchPin, HIGH);
+}
+
+void executeCommands(){ //Executes commands in queue one by one and calls the respective function, clears queue after execution
+  Serial.println("-------------------Executing-------------------------");
+    /*
+        Foward: 1
+        Backward: 2
+        Rotate Left: 3
+        Rotate Right: 4
+        Sideways Right: 5
+        Sideway Left: 6
+        Forward Right: 7
+        Backward Right: 8
+        Backward Left: 9
+        Forward Left: 10
+        Stop Moving: 11
+    */
+  for (int i = 0; i < 7; i++) {
+    switch (commands[i]) {
+      case 0:
+        Serial.println("Empty");
+        break;
+      case 1:
+        Serial.println("Forward");
+        //forwardMove();
+        commands[i] = 0;
+        break;
+      case 2:
+        Serial.println("Backward");
+        //backwardMove();
+        commands[i] = 0;
+        break;
+      case 3:
+        Serial.println("Rotate Left");
+        //rotateLeft();
+        commands[i] = 0;
+        break;
+      case 4:
+        Serial.println("Rotate Right");
+        //rotateRight();
+        commands[i] = 0;
+        break;
+      case 5:
+        Serial.println("Sideways Right");
+        //sidewayRight();
+        commands[i] = 0;
+        break;
+      case 6:
+        Serial.println("Sideways Left");
+        //sidewayLeft();
+        commands[i] = 0;
+        break;
+      case 7:
+        Serial.println("Forward Right");
+        //diagonalForwardRight();
+        commands[i] = 0;
+        break;
+      case 8:
+        Serial.println("Backward Right");
+        //diagonalBackwardRight();
+        commands[i] = 0;
+        break;
+      case 9:
+        Serial.println("Backward Left");
+        //diagonalBackwardLeft();
+        commands[i] = 0;
+        break;
+      case 10:
+        Serial.println("Forward Left");
+        //diagonalForwardLeft();
+        commands[i] = 0;
+        break;
+      case 11:
+        Serial.println("Stop Moving");
+        //stopMove();
+        commands[i] = 0;
+        break;
+      default:
+        Serial.println("Command not recognized");
+        break;
+    }
+    delay(1000);
+  }
+}
