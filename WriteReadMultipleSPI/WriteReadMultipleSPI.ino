@@ -1,6 +1,6 @@
 /*  3/18/2024
 This code reads from RFID tags when button 1 is pressed. The codes are saved into a queue. The respective LED will light up if something is read. It will stay off if nothing is there or the tag cannot be recognized.
-When button 2 is pressed, it reads the queue and executes the movement functions one by one and then clears the queue.*/
+When button 2 is pressed, it reads the queue and executes the movement functions one by one and then clears the queue. The queue is also reset at the start of a read phase.*/
 
 #include <SPI.h>
 #include <PN532_SPI.h>
@@ -9,32 +9,35 @@ When button 2 is pressed, it reads the queue and executes the movement functions
 
 // Motor driver 1
 #define enA 3 // Motor 1 PWM
-#define in1 24 // Motor 1
-#define in2 22 // Motor 1
+#define in1 25 // Motor 1
+#define in2 24 // Motor 1
 #define enB 5 // Motor 2 PWM
-#define in3 26 // Motor 2
-#define in4 28 //Motor 2
+#define in3 23 // Motor 2
+#define in4 22 //Motor 2
 
 // Motor driver 2
-#define enC 6 // Motor 3 PWM
-#define in5 25 // Motor 3 in1
+#define enC 9 // Motor 3 PWM
+#define in5 26 // Motor 3 in1
 #define in6 27 // Motor 3 in2
-#define enD 9 // Motor 4 PWM
-#define in7 31 // Motor 4 in3
-#define in8 33 // Motor 4 in4
-
-#define enD 9 // Motor 4 PWM
-#define in7 31 // Motor 4 in3
-#define in8 33 // Motor 4 in4
+#define enD 6 // Motor 4 PWM
+#define in7 28 // Motor 4 in3
+#define in8 29 // Motor 4 in4
 
 //74HC595 LED Controller Pins
-#define latchPin 5
-#define clockPin 6
+#define latchPin 12
+#define clockPin 13
 #define dataPin 4
 
 //Button Pins
 #define button1Pin 2
-#define button2Pin 3
+#define button2Pin 8
+
+//Piezo Pin
+#define buzzerPin 10
+
+//Ultrasonic Sensors Pins
+#define trigPin 20
+#define echoPin 21
 
 //PN532 RFID SPI Pins
 
@@ -76,6 +79,7 @@ void setup(void) {
   motorSetup();
   pinMode(button1Pin, INPUT);
   pinMode(button2Pin, INPUT);
+  pinMode(buzzerPin, OUTPUT);
   pinMode(latchPin, OUTPUT);
   pinMode(dataPin, OUTPUT);  
   pinMode(clockPin, OUTPUT);
@@ -120,10 +124,10 @@ void loop(void) {
   if (digitalRead(button1Pin) == HIGH) {
     int index = 0;
     for (int i = 0; i < READERS; i++) {
-
       Serial.print("\n Scanning RFID ");
       Serial.print(i+1);
       Serial.print("\n");
+      commands[i] = 0;
       if (nfcDevices[i].tagPresent())
       {
         
@@ -191,8 +195,12 @@ void loop(void) {
         }
         
       }
-      delay(1000);
+      tone(buzzerPin, 500, 300);
+      delay(300);
+      tone(buzzerPin, 3000, 300);
+      delay(600);
     }
+    playEndTune();
   }
 
   //When execute button is pressed
@@ -207,9 +215,12 @@ void forwardMove() {
   analogWrite(enB, 255); // Send PWM signal to L298N Enable pin
   analogWrite(enC, 255); // Send PWM signal to L298N Enable pin
   analogWrite(enD, 255); // Send PWM signal to L298N Enable pin
-
+  for(int i = 0; i < 100000; i++){
+    readUltrasonic();
+  }
+  
   // Four second delay
-  delay(4000);
+  //delay(4000);
 
   stopMove();
 }
@@ -597,5 +608,35 @@ void executeCommands(){ //Executes commands in queue one by one and calls the re
         break;
     }
     delay(1000);
+  }
+}
+
+void playEndTune(){
+  tone(buzzerPin, 1000, 200);
+  delay(200);
+  tone(buzzerPin, 3000, 200);
+  delay(200);
+  tone(buzzerPin, 6000, 200);
+  delay(200);
+  //noTone(buzzerPin);
+}
+
+void readUltrasonic() {
+  // Clears the trigPin
+  digitalWrite(trigPin, LOW);
+  delayMicroseconds(2);
+  // Sets the trigPin on HIGH state for 10 micro seconds
+  digitalWrite(trigPin, HIGH);
+  delayMicroseconds(10);
+  digitalWrite(trigPin, LOW);
+  // Reads the echoPin, returns the sound wave travel time in microseconds
+  duration = pulseIn(echoPin, HIGH);
+  // Calculating the distance
+  distance = duration * 0.034 / 2;
+  // Prints the distance on the Serial Monitor
+  //Serial.print("Distance: ");
+  //Serial.println(distance);
+  if (distance < 5) {
+    stopMove();
   }
 }
