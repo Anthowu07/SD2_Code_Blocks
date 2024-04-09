@@ -53,7 +53,8 @@ PN532_SPI pn532spiSEVEN(SPI, 35);
 NfcAdapter nfcDevices[READERS] = {NfcAdapter(pn532spiONE), NfcAdapter(pn532spiTWO), NfcAdapter(pn532spiTHREE), 
 NfcAdapter(pn532spiFOUR), NfcAdapter(pn532spiFIVE), NfcAdapter(pn532spiSIX), NfcAdapter(pn532spiSEVEN)};
 
-int commands[7] = {0, 0, 0, 0, 0, 0, 0};
+int commandsQ[7] = {0, 0, 0, 0, 0, 0, 0};
+int executedQ[7] = {0, 0, 0, 0, 0, 0, 0};
 byte leds = 0;
 
 byte forwardArray[] = {0x0 ,'F', 'o', 'r', 'w', 'a', 'r', 'd'};
@@ -67,6 +68,8 @@ byte backwardRightArray[] = {0x0 ,'B', 'w', 'd', 'r', 'g', 'h', 't'};
 byte backwardLeftArray[] = {0x0 ,'B', 'w', 'd', 'l', 'e', 'f', 't'};
 byte forwardLeftArray[] = {0x0 ,'F', 'w', 'd', 'l', 'e', 'f', 't'};
 byte stopMoveArray[] = {0x0 ,'S', 't', 'o', 'p', 'm', 'o', 'v'};
+byte repeatLastArray[] = {0x0 ,'R', 'e', 'p', 'e', 'a', 't', 'l'};
+byte repeatAllArray[] = {0x0 ,'R', 'e', 'p', 'e', 'a', 't', 'a'};
 
 void setup(void) {
   
@@ -127,7 +130,7 @@ void loop(void) {
       Serial.print("\n Scanning RFID ");
       Serial.print(i+1);
       Serial.print("\n");
-      commands[i] = 0;
+      commandsQ[i] = 0;
       if (nfcDevices[i].tagPresent())
       {
         
@@ -151,37 +154,43 @@ void loop(void) {
 
         if(memcmp(payload, forwardArray, sizeof(payload)) == 0){
           Serial.println("Forward");
-          commands[index] = 1;
+          commandsQ[index] = 1;
         }else if(memcmp(payload, backwardArray, sizeof(payload)) == 0){
           Serial.println("Backward");
-          commands[index] = 2;
+          commandsQ[index] = 2;
         }else if(memcmp(payload, rotateLeftArray, sizeof(payload)) == 0){
           Serial.println("Rotate Left");
-          commands[index] = 3;
+          commandsQ[index] = 3;
         }else if(memcmp(payload, rotateRightArray, sizeof(payload)) == 0){
           Serial.println("Rotate Right");
-          commands[index] = 4;
+          commandsQ[index] = 4;
         }else if(memcmp(payload, sidewaysRightArray, sizeof(payload)) == 0){
           Serial.println("Sideways Right");
-          commands[index] = 5;
+          commandsQ[index] = 5;
         }else if(memcmp(payload, sidewaysLeftArray, sizeof(payload)) == 0){
           Serial.println("Sideways Left");
-          commands[index] = 6;
+          commandsQ[index] = 6;
         }else if(memcmp(payload, forwardRightArray, sizeof(payload)) == 0){
           Serial.println("Forward Right");
-          commands[index] = 7;
+          commandsQ[index] = 7;
         }else if(memcmp(payload, backwardRightArray, sizeof(payload)) == 0){
           Serial.println("Backward Right");
-          commands[index] = 8;
+          commandsQ[index] = 8;
         }else if(memcmp(payload, backwardLeftArray, sizeof(payload)) == 0){
           Serial.println("Backward Left");
-          commands[index] = 9;
+          commandsQ[index] = 9;
         }else if(memcmp(payload, forwardLeftArray, sizeof(payload)) == 0){
           Serial.println("Forward Left");
-          commands[index] = 10;
+          commandsQ[index] = 10;
         }else if(memcmp(payload, stopMoveArray, sizeof(payload)) == 0){
           Serial.println("Stop Moving");
-          commands[index] = 11;
+          commandsQ[index] = 11;
+        }else if(memcmp(payload, repeatLastArray, sizeof(payload)) == 0){
+          Serial.println("Repeat Last");
+          commandsQ[index] = 12;
+        }else if(memcmp(payload, repeatAllArray, sizeof(payload)) == 0){
+          Serial.println("Repeat All");
+          commandsQ[index] = 13;
         }else{
           Serial.println("Not recognized");
           recognized = false;
@@ -552,67 +561,169 @@ void executeCommands(){ //Executes commands in queue one by one and calls the re
         Backward Left: 9
         Forward Left: 10
         Stop Moving: 11
+        Repeat Last: 12
+        Repeat All: 13
     */
   for (int i = 0; i < 7; i++) {
-    switch (commands[i]) {
+    switch (commandsQ[i]) {
       case 0:
         Serial.println("Empty");
         break;
       case 1:
         Serial.println("Forward");
         forwardMove();
-        commands[i] = 0;
+        executedQ[i] = commandsQ[i];
+        commandsQ[i] = 0;
         break;
       case 2:
         Serial.println("Backward");
         backwardMove();
-        commands[i] = 0;
+        executedQ[i] = commandsQ[i];
+        commandsQ[i] = 0;
         break;
       case 3:
         Serial.println("Rotate Left");
         rotateLeft();
-        commands[i] = 0;
+        executedQ[i] = commandsQ[i];
+        commandsQ[i] = 0;
         break;
       case 4:
         Serial.println("Rotate Right");
         rotateRight();
-        commands[i] = 0;
+        executedQ[i] = commandsQ[i];
+        commandsQ[i] = 0;
         break;
       case 5:
         Serial.println("Sideways Right");
         sidewayRight();
-        commands[i] = 0;
+        executedQ[i] = commandsQ[i];
+        commandsQ[i] = 0;
         break;
       case 6:
         Serial.println("Sideways Left");
         sidewayLeft();
-        commands[i] = 0;
+        executedQ[i] = commandsQ[i];
+        commandsQ[i] = 0;
         break;
       case 7:
         Serial.println("Forward Right");
         diagonalForwardRight();
-        commands[i] = 0;
+        executedQ[i] = commandsQ[i];
+        commandsQ[i] = 0;
         break;
       case 8:
         Serial.println("Backward Right");
         diagonalBackwardRight();
-        commands[i] = 0;
+        executedQ[i] = commandsQ[i];
+        commandsQ[i] = 0;
         break;
       case 9:
         Serial.println("Backward Left");
         diagonalBackwardLeft();
-        commands[i] = 0;
+        executedQ[i] = commandsQ[i];
+        commandsQ[i] = 0;
         break;
       case 10:
         Serial.println("Forward Left");
         diagonalForwardLeft();
-        commands[i] = 0;
+        executedQ[i] = commandsQ[i];
+        commandsQ[i] = 0;
         break;
       case 11:
         Serial.println("Stop Moving");
         stopMove();
-        commands[i] = 0;
+        executedQ[i] = commandsQ[i];
+        commandsQ[i] = 0;
         break;
+      case 12:
+        Serial.println("Repeat Last");
+        if(i == 0){
+          Serial.println("Nothing to Repeat");
+        }else{
+          executeRepeats(i-1);
+        }
+        //executedQ[i] = commandsQ[i];
+        commandsQ[i] = 0;
+      case 13:
+        Serial.println("Repeat All");
+        if(i == 0){
+          Serial.println("Nothing to Repeat");
+        }else{
+          executeRepeats(0);
+        }
+        //executedQ[i] = commandsQ[i];
+        commandsQ[i] = 0;
+      default:
+        Serial.println("Command not recognized");
+        break;
+    }
+    delay(1000);
+  }
+  for(int i = 0; i < 7; i++){ //Clear executed queue once all commands have been executed
+    executedQ[i] = 0;
+  }
+}
+
+void executeRepeats(int index){ //Executes comands in the executed queue, if repeat all start at start of queue, if repeat last start at end of queue
+  for (int i = index; i < 7; i++) {
+    switch (executedQ[i]) {
+      case 0:
+        Serial.println("Empty");
+        break;
+      case 1:
+        Serial.println("Forward");
+        forwardMove();
+        break;
+      case 2:
+        Serial.println("Backward");
+        backwardMove();
+        break;
+      case 3:
+        Serial.println("Rotate Left");
+        rotateLeft();
+        break;
+      case 4:
+        Serial.println("Rotate Right");
+        rotateRight();
+        break;
+      case 5:
+        Serial.println("Sideways Right");
+        sidewayRight();
+        break;
+      case 6:
+        Serial.println("Sideways Left");
+        sidewayLeft();
+        break;
+      case 7:
+        Serial.println("Forward Right");
+        diagonalForwardRight();
+        break;
+      case 8:
+        Serial.println("Backward Right");
+        diagonalBackwardRight();
+        break;
+      case 9:
+        Serial.println("Backward Left");
+        diagonalBackwardLeft();
+        break;
+      case 10:
+        Serial.println("Forward Left");
+        diagonalForwardLeft();
+        break;
+      case 11:
+        Serial.println("Stop Moving");
+        stopMove();
+        break;
+      // case 12:
+      //   Serial.println("Repeat Last");
+      //   executeRepeats(1, i-1);
+      //   //executedQ[i] = commandsQ[i];
+      //   commandsQ[i] = 0;
+      // case 13:
+      //   Serial.println("Repeat All");
+      //   executeRepeats(2, 0);
+      //   //executedQ[i] = commandsQ[i];
+      //   commandsQ[i] = 0;
       default:
         Serial.println("Command not recognized");
         break;
