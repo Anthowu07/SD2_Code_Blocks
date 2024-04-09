@@ -565,6 +565,8 @@ void executeCommands(){ //Executes commands in queue one by one and calls the re
         Repeat All: 13
     */
   for (int i = 0; i < 7; i++) {
+    bitSet(leds, i);
+    updateShiftRegister();
     switch (commandsQ[i]) {
       case 0:
         Serial.println("Empty");
