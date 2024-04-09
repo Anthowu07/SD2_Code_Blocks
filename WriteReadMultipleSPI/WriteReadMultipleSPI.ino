@@ -42,12 +42,12 @@ When button 2 is pressed, it reads the queue and executes the movement functions
 //PN532 RFID SPI Pins
 
 PN532_SPI pn532spiONE(SPI, 38);
-PN532_SPI pn532spiTWO(SPI, 43);
-PN532_SPI pn532spiTHREE(SPI, 37);
-PN532_SPI pn532spiFOUR(SPI, 36);
-PN532_SPI pn532spiFIVE(SPI, 35);
+PN532_SPI pn532spiTWO(SPI, 37);
+PN532_SPI pn532spiTHREE(SPI, 36);
+PN532_SPI pn532spiFOUR(SPI, 43);
+PN532_SPI pn532spiFIVE(SPI, 41);
 PN532_SPI pn532spiSIX(SPI, 40);
-PN532_SPI pn532spiSEVEN(SPI, 41);
+PN532_SPI pn532spiSEVEN(SPI, 35);
 
 #define READERS 7
 NfcAdapter nfcDevices[READERS] = {NfcAdapter(pn532spiONE), NfcAdapter(pn532spiTWO), NfcAdapter(pn532spiTHREE), 
@@ -131,9 +131,9 @@ void loop(void) {
       if (nfcDevices[i].tagPresent())
       {
         
-        //Write instruction into tag
+        // //Write instruction into tag
         // NdefMessage message = NdefMessage();
-        // message.addUriRecord("RotateR");
+        // message.addUriRecord("Fwdrght");
 
         // bool success = nfcDevices[i].write(message);
         // if (success) {
@@ -141,10 +141,10 @@ void loop(void) {
         // } else {
         //   Serial.println("Write failed.");
         // }
-        // delay(300);
+        //delay(300);
 
         //Read tag, obtain Payload, print payload
-        byte payload[8];
+        byte payload[8] = {0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0};
         NfcTag tag = nfcDevices[i].read();
         tag.getNdefMessage().getRecord(0).getPayload(payload);
         PrintHexChar(payload, sizeof(payload));
@@ -192,13 +192,23 @@ void loop(void) {
           bitSet(leds, i);
           updateShiftRegister();
           index++;
-        }
-        
+          tone(buzzerPin, 500, 100);
+          delay(100);
+          tone(buzzerPin, 3000, 200);
+          delay(200);
+        }else{
+        tone(buzzerPin, 3000, 100);
+        delay(100);
+        tone(buzzerPin, 500, 200);
+        delay(200);
       }
-      tone(buzzerPin, 500, 300);
-      delay(300);
-      tone(buzzerPin, 3000, 300);
-      delay(600);
+        
+      }else{
+        tone(buzzerPin, 3000, 100);
+        delay(100);
+        tone(buzzerPin, 500, 200);
+        delay(200);
+      }
     }
     playEndTune();
   }
@@ -215,12 +225,12 @@ void forwardMove() {
   analogWrite(enB, 255); // Send PWM signal to L298N Enable pin
   analogWrite(enC, 255); // Send PWM signal to L298N Enable pin
   analogWrite(enD, 255); // Send PWM signal to L298N Enable pin
-  for(int i = 0; i < 100000; i++){
-    readUltrasonic();
-  }
+  // for(int i = 0; i < 100000; i++){
+  //   readUltrasonic();
+  // }
   
-  // Four second delay
-  //delay(4000);
+  //Four second delay
+  delay(4000);
 
   stopMove();
 }
@@ -297,7 +307,7 @@ void rotateLeft() {
   analogWrite(enD, 255); // Send PWM signal to L298N Enable 
 
   // 1000 = 1 second.
-  delay(3000);
+  delay(2800);
 
   stopMove();
   resetDirection();
@@ -326,7 +336,7 @@ void rotateRight() {
   analogWrite(enD, 255); // Send PWM signal to L298N Enable 
    
   // 1000 = 1 second.
-  delay(3000);
+  delay(2815);
   
   stopMove();
   resetDirection();
@@ -426,7 +436,7 @@ void diagonalForwardRight() {
   analogWrite(enA, 255); // Send PWM signal to L298N Enable 
   analogWrite(enC, 255); // Send PWM signal to L298N Enable 
 
-  delay(4000);
+  delay(5000);
 
   stopMove();
   resetDirection();
@@ -454,7 +464,7 @@ void diagonalForwardLeft() {
   analogWrite(enB, 255); // Send PWM signal to L298N Enable
   analogWrite(enD, 255); // Send PWM signal to L298N Enable 
 
-  delay(4000);
+  delay(5000);
 
   stopMove();
   resetDirection();
@@ -481,7 +491,7 @@ void diagonalBackwardRight() {
   analogWrite(enB, 255); // Send PWM signal to L298N Enable
   analogWrite(enD, 255); // Send PWM signal to L298N Enable
 
-  delay(4000);
+  delay(5000);
 
   stopMove();
   resetDirection();
@@ -508,7 +518,7 @@ void diagonalBackwardLeft() {
   analogWrite(enA, 255); // Send PWM signal to L298N Enable 
   analogWrite(enC, 255); // Send PWM signal to L298N Enable 
 
-  delay(4000);
+  delay(5000);
 
   stopMove();
   resetDirection();
@@ -550,57 +560,57 @@ void executeCommands(){ //Executes commands in queue one by one and calls the re
         break;
       case 1:
         Serial.println("Forward");
-        //forwardMove();
+        forwardMove();
         commands[i] = 0;
         break;
       case 2:
         Serial.println("Backward");
-        //backwardMove();
+        backwardMove();
         commands[i] = 0;
         break;
       case 3:
         Serial.println("Rotate Left");
-        //rotateLeft();
+        rotateLeft();
         commands[i] = 0;
         break;
       case 4:
         Serial.println("Rotate Right");
-        //rotateRight();
+        rotateRight();
         commands[i] = 0;
         break;
       case 5:
         Serial.println("Sideways Right");
-        //sidewayRight();
+        sidewayRight();
         commands[i] = 0;
         break;
       case 6:
         Serial.println("Sideways Left");
-        //sidewayLeft();
+        sidewayLeft();
         commands[i] = 0;
         break;
       case 7:
         Serial.println("Forward Right");
-        //diagonalForwardRight();
+        diagonalForwardRight();
         commands[i] = 0;
         break;
       case 8:
         Serial.println("Backward Right");
-        //diagonalBackwardRight();
+        diagonalBackwardRight();
         commands[i] = 0;
         break;
       case 9:
         Serial.println("Backward Left");
-        //diagonalBackwardLeft();
+        diagonalBackwardLeft();
         commands[i] = 0;
         break;
       case 10:
         Serial.println("Forward Left");
-        //diagonalForwardLeft();
+        diagonalForwardLeft();
         commands[i] = 0;
         break;
       case 11:
         Serial.println("Stop Moving");
-        //stopMove();
+        stopMove();
         commands[i] = 0;
         break;
       default:
@@ -622,6 +632,8 @@ void playEndTune(){
 }
 
 void readUltrasonic() {
+  long duration;
+  int distance;
   // Clears the trigPin
   digitalWrite(trigPin, LOW);
   delayMicroseconds(2);
