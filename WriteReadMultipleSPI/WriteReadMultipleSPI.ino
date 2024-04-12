@@ -49,9 +49,11 @@ PN532_SPI pn532spiFIVE(SPI, 41);
 PN532_SPI pn532spiSIX(SPI, 40);
 PN532_SPI pn532spiSEVEN(SPI, 35);
 
-#define READERS 7
+#define READERS 6
+//NfcAdapter nfcDevices[READERS] = {NfcAdapter(pn532spiONE), NfcAdapter(pn532spiTWO), NfcAdapter(pn532spiTHREE), 
+//NfcAdapter(pn532spiFOUR), NfcAdapter(pn532spiFIVE), NfcAdapter(pn532spiSIX), NfcAdapter(pn532spiSEVEN)};
 NfcAdapter nfcDevices[READERS] = {NfcAdapter(pn532spiONE), NfcAdapter(pn532spiTWO), NfcAdapter(pn532spiTHREE), 
-NfcAdapter(pn532spiFOUR), NfcAdapter(pn532spiFIVE), NfcAdapter(pn532spiSIX), NfcAdapter(pn532spiSEVEN)};
+NfcAdapter(pn532spiFOUR), NfcAdapter(pn532spiFIVE), NfcAdapter(pn532spiSIX)};
 
 int commandsQ[7] = {0, 0, 0, 0, 0, 0, 0};
 int executedQ[7] = {0, 0, 0, 0, 0, 0, 0};
@@ -136,7 +138,7 @@ void loop(void) {
         
         // //Write instruction into tag
         // NdefMessage message = NdefMessage();
-        // message.addUriRecord("Fwdrght");
+        // message.addUriRecord("Repeata");
 
         // bool success = nfcDevices[i].write(message);
         // if (success) {
@@ -144,7 +146,7 @@ void loop(void) {
         // } else {
         //   Serial.println("Write failed.");
         // }
-        //delay(300);
+        // delay(300);
 
         //Read tag, obtain Payload, print payload
         byte payload[8] = {0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0};
@@ -646,6 +648,7 @@ void executeCommands(){ //Executes commands in queue one by one and calls the re
         }
         //executedQ[i] = commandsQ[i];
         commandsQ[i] = 0;
+        break;
       case 13:
         Serial.println("Repeat All");
         if(i == 0){
@@ -655,11 +658,14 @@ void executeCommands(){ //Executes commands in queue one by one and calls the re
         }
         //executedQ[i] = commandsQ[i];
         commandsQ[i] = 0;
+        break;
       default:
         Serial.println("Command not recognized");
         break;
     }
-    delay(1000);
+    if(commandsQ[i] != 0){
+      delay(1000);
+    }
   }
   for(int i = 0; i < 7; i++){ //Clear executed queue once all commands have been executed
     executedQ[i] = 0;
@@ -730,7 +736,9 @@ void executeRepeats(int index){ //Executes comands in the executed queue, if rep
         Serial.println("Command not recognized");
         break;
     }
-    delay(1000);
+    if(executedQ[i] != 0){
+      delay(1000);
+    }
   }
 }
 
