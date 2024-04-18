@@ -1,4 +1,4 @@
-/*  3/18/2024
+/*  4-17/2024
 This code reads from RFID tags when button 1 is pressed. The codes are saved into a queue. The respective LED will light up if something is read. It will stay off if nothing is there or the tag cannot be recognized.
 When button 2 is pressed, it reads the queue and executes the movement functions one by one and then clears the queue. The queue is also reset at the start of a read phase.*/
 
@@ -28,6 +28,10 @@ When button 2 is pressed, it reads the queue and executes the movement functions
 #define clockPin 13
 #define dataPin 4
 
+// RGB LED Pins
+#define redPin
+#define greenPin
+
 //Button Pins
 #define button1Pin 2
 #define button2Pin 8
@@ -41,19 +45,21 @@ When button 2 is pressed, it reads the queue and executes the movement functions
 
 //PN532 RFID SPI Pins
 
-PN532_SPI pn532spiONE(SPI, 38);
-PN532_SPI pn532spiTWO(SPI, 37);
-PN532_SPI pn532spiTHREE(SPI, 36);
-PN532_SPI pn532spiFOUR(SPI, 43);
-PN532_SPI pn532spiFIVE(SPI, 41);
-PN532_SPI pn532spiSIX(SPI, 40);
-PN532_SPI pn532spiSEVEN(SPI, 35);
 
-#define READERS 6
+PN532_SPI pn532spiONE(SPI, 30);
+PN532_SPI pn532spiTWO(SPI, 32);
+PN532_SPI pn532spiTHREE(SPI, 34);
+PN532_SPI pn532spiFOUR(SPI, 35);
+PN532_SPI pn532spiFIVE(SPI, 38);
+PN532_SPI pn532spiSIX(SPI, 39);
+PN532_SPI pn532spiSEVEN(SPI, 41);
+PN532_SPI pn532spiEIGHT(SPI, 43);
+
+#define READERS 8
 //NfcAdapter nfcDevices[READERS] = {NfcAdapter(pn532spiONE), NfcAdapter(pn532spiTWO), NfcAdapter(pn532spiTHREE), 
 //NfcAdapter(pn532spiFOUR), NfcAdapter(pn532spiFIVE), NfcAdapter(pn532spiSIX), NfcAdapter(pn532spiSEVEN)};
 NfcAdapter nfcDevices[READERS] = {NfcAdapter(pn532spiONE), NfcAdapter(pn532spiTWO), NfcAdapter(pn532spiTHREE), 
-NfcAdapter(pn532spiFOUR), NfcAdapter(pn532spiFIVE), NfcAdapter(pn532spiSIX)};
+NfcAdapter(pn532spiFOUR), NfcAdapter(pn532spiFIVE), NfcAdapter(pn532spiSIX), NfcAdapter(pn532spiSEVEN), NfcAdapter(pn532spiEIGHT)};
 
 int commandsQ[7] = {0, 0, 0, 0, 0, 0, 0};
 int executedQ[7] = {0, 0, 0, 0, 0, 0, 0};
@@ -138,7 +144,7 @@ void loop(void) {
         
         // //Write instruction into tag
         // NdefMessage message = NdefMessage();
-        // message.addUriRecord("Repeata");
+        // message.addUriRecord("SidewyR");
 
         // bool success = nfcDevices[i].write(message);
         // if (success) {
@@ -318,7 +324,7 @@ void rotateLeft() {
   analogWrite(enD, 255); // Send PWM signal to L298N Enable 
 
   // 1000 = 1 second.
-  delay(2800);
+  delay(3015);
 
   stopMove();
   resetDirection();
@@ -347,7 +353,7 @@ void rotateRight() {
   analogWrite(enD, 255); // Send PWM signal to L298N Enable 
    
   // 1000 = 1 second.
-  delay(2815);
+  delay(3150);
   
   stopMove();
   resetDirection();
@@ -646,7 +652,7 @@ void executeCommands(){ //Executes commands in queue one by one and calls the re
         }else{
           executeRepeats(i-1);
         }
-        //executedQ[i] = commandsQ[i];
+        executedQ[i] = commandsQ[i];
         commandsQ[i] = 0;
         break;
       case 13:
@@ -656,7 +662,7 @@ void executeCommands(){ //Executes commands in queue one by one and calls the re
         }else{
           executeRepeats(0);
         }
-        //executedQ[i] = commandsQ[i];
+        executedQ[i] = commandsQ[i];
         commandsQ[i] = 0;
         break;
       default:
@@ -668,6 +674,7 @@ void executeCommands(){ //Executes commands in queue one by one and calls the re
     }
   }
   for(int i = 0; i < 7; i++){ //Clear executed queue once all commands have been executed
+    commandsQ[i] = executedQ[i];
     executedQ[i] = 0;
   }
 }
@@ -722,22 +729,16 @@ void executeRepeats(int index){ //Executes comands in the executed queue, if rep
         Serial.println("Stop Moving");
         stopMove();
         break;
-      // case 12:
-      //   Serial.println("Repeat Last");
-      //   executeRepeats(1, i-1);
-      //   //executedQ[i] = commandsQ[i];
-      //   commandsQ[i] = 0;
-      // case 13:
-      //   Serial.println("Repeat All");
-      //   executeRepeats(2, 0);
-      //   //executedQ[i] = commandsQ[i];
-      //   commandsQ[i] = 0;
+      case 12:
+        break;
+      case 13:
+        break;
       default:
         Serial.println("Command not recognized");
         break;
     }
     if(executedQ[i] != 0){
-      delay(1000);
+      delay(500);
     }
   }
 }
@@ -772,4 +773,6 @@ void readUltrasonic() {
   if (distance < 5) {
     stopMove();
   }
+
+ 
 }
